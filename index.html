@@ -3,111 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Stock Scanner Pro - All in One</title>
-    <!-- ใช้ Tailwind CSS สำหรับ UI -->
+    <title>Stock Scanner Pro - High Speed</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Library สำหรับสแกนบาร์โค้ด -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
-        #reader { width: 100% !important; border: none !important; border-radius: 1.5rem; overflow: hidden; }
-        #reader video { object-fit: cover; border-radius: 1.5rem; }
+        #reader { width: 100% !important; border: none !important; border-radius: 2rem; overflow: hidden; position: relative; }
+        #reader video { object-fit: cover; border-radius: 2rem; }
+        /* ซ่อน UI ส่วนเกินของ Library */
         #reader__dashboard_section_csr, #reader__status_span { display: none !important; }
-        .glass-morphism { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
+        
+        /* เส้นเลเซอร์สมจริงสำหรับเล็งบาร์โค้ด */
+        .laser-line {
+            position: absolute;
+            top: 50%;
+            left: 10%;
+            right: 10%;
+            height: 2px;
+            background-color: #ef4444;
+            box-shadow: 0 0 10px #ef4444;
+            z-index: 10;
+            animation: scan 2s infinite;
+        }
+        @keyframes scan {
+            0%, 100% { transform: translateY(-30px); opacity: 0.5; }
+            50% { transform: translateY(30px); opacity: 1; }
+        }
     </style>
 </head>
-<body class="bg-slate-100 min-h-screen font-sans antialiased text-slate-900">
+<body class="bg-slate-900 min-h-screen text-slate-100 font-sans">
 
-    <div class="max-w-md mx-auto p-4 pb-10">
-        <!-- Header -->
-        <header class="text-center my-6">
-            <h1 class="text-3xl font-black text-indigo-600 tracking-tighter italic">STOCK MASTER</h1>
-            <p class="text-slate-500 text-xs font-bold uppercase tracking-widest">Inventory & POS System</p>
+    <div class="max-w-md mx-auto p-4 pb-20">
+        <header class="text-center py-8">
+            <h1 class="text-2xl font-black italic tracking-tighter text-indigo-400">FAST SCAN V2</h1>
+            <p class="text-slate-500 text-[10px] font-bold tracking-[0.2em]">HIGH-PERFORMANCE INVENTORY</p>
         </header>
 
-        <!-- Scanner Container -->
-        <div class="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 p-4 mb-6 border border-white">
-            
-            <!-- 1. หน้าแรก: ปุ่มเปิดกล้อง (แก้ปัญหา Permission) -->
+        <!-- กล่องสแกนเนอร์ -->
+        <div class="relative bg-slate-800 rounded-[2.5rem] p-3 shadow-2xl border border-slate-700 mb-6">
             <div id="setup-view" class="py-16 text-center">
-                <div class="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg class="w-12 h-12 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                </div>
-                <button onclick="startScanner()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-12 py-4 rounded-2xl font-black shadow-lg shadow-indigo-200 active:scale-95 transition-all">
-                    START SCANNER
+                <button onclick="startScanner()" class="bg-indigo-500 hover:bg-indigo-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl active:scale-95 transition-all">
+                    OPEN CAMERA
                 </button>
-                <p class="mt-4 text-[10px] text-slate-400 font-bold">SUPPORT IOS / ANDROID / IPAD</p>
             </div>
 
-            <!-- 2. หน้าสแกน: เมื่อกล้องทำงาน -->
-            <div id="scanner-view" class="hidden">
+            <div id="scanner-view" class="hidden relative">
                 <div id="reader"></div>
-                <div class="mt-4 flex items-center justify-center space-x-2 text-slate-400">
-                    <div class="w-2 h-2 bg-green-500 rounded-full animate-ping"></div>
-                    <span class="text-xs font-bold">SCANNING BARCODE...</span>
-                </div>
+                <div class="laser-line"></div>
             </div>
         </div>
 
-        <!-- 3. ผลลัพธ์: เมื่อสแกนพบสินค้าในฐานข้อมูล -->
-        <div id="result-card" class="hidden bg-white rounded-[2.5rem] shadow-2xl p-6 border-t-8 border-indigo-500 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <!-- รายละเอียดสินค้า (Result) -->
+        <div id="result-card" class="hidden bg-white rounded-[2rem] p-6 text-slate-900 animate-in fade-in slide-in-from-bottom-5 duration-500">
             <div class="flex justify-between items-start mb-6">
                 <div class="flex-1">
-                    <span class="text-[10px] font-black text-indigo-500 uppercase tracking-tighter">Product Info</span>
-                    <h2 id="p-name" class="text-2xl font-black text-slate-800 leading-none">Product Name</h2>
-                    <p id="p-barcode" class="text-slate-400 font-mono text-xs mt-1 italic">Barcode: -</p>
+                    <h2 id="p-name" class="text-2xl font-black leading-tight">Product Name</h2>
+                    <p id="p-barcode" class="text-slate-400 font-mono text-xs italic">Barcode: -</p>
                 </div>
                 <div class="text-right">
-                    <span class="text-[10px] font-black text-slate-400 uppercase">Price</span>
-                    <p id="p-price" class="text-3xl font-black text-green-600 tracking-tighter">฿0</p>
+                    <p id="p-price" class="text-3xl font-black text-indigo-600 tracking-tighter">฿0</p>
                 </div>
             </div>
 
-            <div class="bg-slate-50 p-5 rounded-3xl mb-6 flex justify-between items-center border border-slate-100">
-                <span class="font-bold text-slate-500">In Stock:</span>
-                <span id="p-stock" class="text-4xl font-black text-indigo-600">0</span>
+            <div class="bg-slate-100 p-4 rounded-2xl mb-4 flex justify-between items-center">
+                <span class="font-bold text-slate-500">Stock:</span>
+                <span id="p-stock" class="text-3xl font-black text-indigo-600">0</span>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
-                <button onclick="updateStock('out')" class="bg-rose-50 hover:bg-rose-100 text-rose-600 py-5 rounded-3xl transition-all active:scale-90 flex flex-col items-center">
-                    <span class="text-2xl font-black">-1</span>
-                    <span class="text-[10px] font-bold uppercase">Sell Out</span>
-                </button>
-                <button onclick="updateStock('in')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 py-5 rounded-3xl transition-all active:scale-90 flex flex-col items-center">
-                    <span class="text-2xl font-black">+1</span>
-                    <span class="text-[10px] font-bold uppercase">Restock</span>
-                </button>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="updateStock('out')" class="bg-rose-500 text-white py-4 rounded-2xl font-black active:scale-90 transition-all">-1 SELL</button>
+                <button onclick="updateStock('in')" class="bg-indigo-600 text-white py-4 rounded-2xl font-black active:scale-90 transition-all">+1 STOCK</button>
             </div>
         </div>
 
-        <!-- 4. ฟอร์มลงทะเบียน: เมื่อไม่พบสินค้า -->
-        <div id="add-form" class="hidden bg-white rounded-[2.5rem] shadow-2xl p-8 border-t-8 border-green-500 mt-4">
-            <h2 class="text-2xl font-black text-slate-800 mb-2">New Product!</h2>
-            <p class="text-slate-400 text-xs mb-6 font-bold uppercase tracking-widest">Register into system</p>
-            
-            <div class="space-y-4">
-                <input type="text" id="new-name" class="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 focus:ring-2 focus:ring-green-500 font-bold" placeholder="Product Name">
-                <div class="grid grid-cols-2 gap-4">
-                    <input type="number" id="new-price" class="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 font-bold" placeholder="Price (฿)">
-                    <input type="number" id="new-stock" class="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 font-bold" placeholder="Init Stock">
+        <!-- ฟอร์มสินค้าใหม่ -->
+        <div id="add-form" class="hidden bg-emerald-50 rounded-[2rem] p-6 text-slate-900 mt-4 border-2 border-emerald-200">
+            <h3 class="text-lg font-black mb-4 flex items-center">
+                <span class="mr-2">🆕</span> NEW PRODUCT
+            </h3>
+            <div class="space-y-3">
+                <input type="text" id="new-name" class="w-full rounded-xl px-4 py-3 border-none ring-1 ring-emerald-200 font-bold" placeholder="ชื่อสินค้า">
+                <div class="grid grid-cols-2 gap-3">
+                    <input type="number" id="new-price" class="w-full rounded-xl px-4 py-3 border-none ring-1 ring-emerald-200 font-bold" placeholder="ราคา (฿)">
+                    <input type="number" id="new-stock" class="w-full rounded-xl px-4 py-3 border-none ring-1 ring-emerald-200 font-bold" placeholder="สตอกแรก">
                 </div>
-                <button onclick="submitNewProduct()" class="w-full bg-green-500 hover:bg-green-600 text-white py-5 rounded-3xl font-black shadow-lg shadow-green-100 transition-all active:scale-95">
-                    SAVE PRODUCT
-                </button>
-                <button onclick="closeAddForm()" class="w-full text-slate-300 font-bold text-xs uppercase mt-2">Cancel</button>
+                <button onclick="submitNewProduct()" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black shadow-lg">SAVE DATA</button>
             </div>
         </div>
     </div>
 
-    <!-- Loading Overlay -->
-    <div id="loading" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-50">
+    <!-- Loading -->
+    <div id="loading" class="hidden fixed inset-0 bg-slate-900/90 backdrop-blur-sm flex items-center justify-center z-50">
         <div class="text-center">
-            <div class="w-16 h-16 border-8 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p class="text-white font-black text-lg italic tracking-widest">PROCESSING...</p>
+            <div class="w-12 h-12 border-4 border-indigo-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p class="text-xs font-black tracking-widest text-indigo-400">WORKING...</p>
         </div>
     </div>
 
     <script>
-        // *** ⚠️ วาง URL ที่ได้จาก Deploy (ลงท้ายด้วย /exec) ที่นี่ ***
+        // *** วาง URL ของคุณที่นี่ ***
         const API_URL = "https://script.google.com/macros/s/AKfycbxaSGPtH9xTRWMKfZ99K2XpeXeg8DBRr5I3TFjJkUetBq3h-fj5Kz7_T_z7o_izCMHVyQ/exec";
         
         let html5QrCode;
@@ -118,22 +111,29 @@
             document.getElementById('scanner-view').classList.remove('hidden');
 
             html5QrCode = new Html5Qrcode("reader");
-            const config = { fps: 10, qrbox: { width: 250, height: 180 }, aspectRatio: 1.0 };
+            
+            // การตั้งค่าสำหรับการสแกนบาร์โค้ดที่มีความไวสูง
+            const config = { 
+                fps: 25, // เพิ่ม Frame rate ให้สูงขึ้นเพื่อการจับภาพที่ต่อเนื่อง
+                qrbox: { width: 320, height: 120 }, // ปรับช่องสแกนให้เป็นแนวยาวตามรูปทรงบาร์โค้ด
+                aspectRatio: 1.0,
+                experimentalFeatures: {
+                    useBarCodeDetectorIfSupported: true // ใช้ชิปสแกนในตัวเครื่องถ้ามี
+                }
+            };
 
             try {
-                // ขออนุญาตใช้กล้อง
                 await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess);
             } catch (err) {
                 alert("Camera Error: " + err);
-                document.getElementById('setup-view').classList.remove('hidden');
-                document.getElementById('scanner-view').classList.add('hidden');
+                location.reload();
             }
         }
 
         function onScanSuccess(decodedText) {
             if (decodedText === lastScannedCode) return;
             lastScannedCode = decodedText;
-            if (navigator.vibrate) navigator.vibrate(100);
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // สั่นแบบมืออาชีพ
             fetchProduct(decodedText);
         }
 
@@ -147,21 +147,15 @@
                 const data = await response.json();
                 
                 if (data.status === "success") {
-                    document.getElementById('p-name').innerText = data.name || "Unknown Product";
-                    document.getElementById('p-barcode').innerText = `Barcode: ${data.barcode}`;
+                    document.getElementById('p-name').innerText = data.name || "ไม่มีชื่อสินค้า";
+                    document.getElementById('p-barcode').innerText = `ID: ${data.barcode}`;
                     document.getElementById('p-price').innerText = `฿${data.price || 0}`;
                     document.getElementById('p-stock').innerText = data.stock || 0;
                     document.getElementById('result-card').classList.remove('hidden');
-                    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
                 } else {
-                    // ไม่พบสินค้า -> เปิดฟอร์มลงทะเบียน
                     document.getElementById('add-form').classList.remove('hidden');
-                    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
                 }
-            } catch (err) {
-                alert("Connection Failed");
-                lastScannedCode = "";
-            }
+            } catch (err) { alert("API Connection Error"); }
             showLoading(false);
         }
 
@@ -170,9 +164,7 @@
             try {
                 const response = await fetch(`${API_URL}?action=update&barcode=${lastScannedCode}&type=${type}&amount=1`);
                 const data = await response.json();
-                if (data.status === "success") {
-                    document.getElementById('p-stock').innerText = data.new_stock;
-                }
+                if (data.status === "success") document.getElementById('p-stock').innerText = data.new_stock;
             } catch (err) { alert("Update Failed"); }
             showLoading(false);
         }
@@ -181,8 +173,7 @@
             const name = document.getElementById('new-name').value;
             const price = document.getElementById('new-price').value;
             const stock = document.getElementById('new-stock').value;
-
-            if (!name) return alert("Please enter Product Name");
+            if (!name) return alert("ระบุชื่อสินค้าด้วยครับ");
 
             showLoading(true);
             try {
@@ -191,15 +182,10 @@
                 const data = await res.json();
                 if (data.status === "success") {
                     document.getElementById('add-form').classList.add('hidden');
-                    fetchProduct(lastScannedCode); // โชว์ข้อมูลที่เพิ่งลงทะเบียน
+                    fetchProduct(lastScannedCode);
                 }
             } catch (e) { alert("Save Failed"); }
             showLoading(false);
-        }
-
-        function closeAddForm() {
-            document.getElementById('add-form').classList.add('hidden');
-            lastScannedCode = "";
         }
 
         function showLoading(show) {
