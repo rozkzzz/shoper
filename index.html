@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stock Scanner GitHub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        #reader { width: 100% !important; border: none !important; border-radius: 1.5rem; overflow: hidden; }
+        #reader__dashboard_section_csr { display: none !important; }
+        .glass-morphism { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 antialiased">
+
+    <div class="max-w-md mx-auto p-4 pb-24">
+        <!-- Header -->
+        <header class="flex items-center justify-between my-6 px-2">
+            <div>
+                <h1 class="text-2xl font-extrabold text-indigo-700 tracking-tight">STOCK PRO</h1>
+                <p class="text-xs text-slate-500 font-medium uppercase tracking-widest">GitHub Edition</p>
+            </div>
+            <div class="bg-white p-2 rounded-xl shadow-sm border border-slate-200">
+                <div id="status-dot" class="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+            </div>
+        </header>
+
+        <!-- Scanner Card -->
+        <div class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 p-4 mb-6 border border-white">
+            <div id="scanner-container" class="relative">
+                <div id="reader"></div>
+                
+                <!-- Overlay ก่อนเปิดกล้อง -->
+                <div id="camera-placeholder" class="py-12 text-center">
+                    <div class="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <svg class="w-10 h-10 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
+                    </div>
+                    <button onclick="initCamera()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95">
+                        แตะเพื่อเปิดกล้อง
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Card -->
+        <div id="result-card" class="hidden bg-white rounded-[2rem] shadow-2xl p-6 border border-indigo-50 animate-in fade-in slide-in-from-bottom-4">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h2 id="p-name" class="text-2xl font-black text-slate-800 leading-tight">ชื่อสินค้า</h2>
+                    <p id="p-barcode" class="text-slate-400 font-mono text-sm mt-1">Barcode: -</p>
+                </div>
+                <p id="p-price" class="text-3xl font-black text-green-600 italic">฿0</p>
+            </div>
+
+            <div class="bg-slate-50 p-5 rounded-2xl mb-8 flex justify-between items-center border border-slate-100">
+                <span class="font-bold text-slate-500 uppercase text-xs tracking-wider">สตอกคงเหลือ</span>
+                <span id="p-stock" class="text-4xl font-black text-indigo-600">0</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="updateStock('out')" class="bg-rose-50 hover:bg-rose-100 text-rose-600 py-5 rounded-2xl transition-all active:scale-95 border border-rose-100 flex flex-col items-center">
+                    <span class="text-2xl font-black">-1</span>
+                    <span class="text-[10px] font-bold uppercase tracking-tighter">ขายออก</span>
+                </button>
+                <button onclick="updateStock('in')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 py-5 rounded-2xl transition-all active:scale-95 border border-indigo-100 flex flex-col items-center">
+                    <span class="text-2xl font-black">+1</span>
+                    <span class="text-[10px] font-bold uppercase tracking-tighter">รับเข้า</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Processing Overlay -->
+    <div id="loading" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 px-10">
+        <div class="bg-white p-8 rounded-[2.5rem] text-center shadow-2xl w-full max-w-xs">
+            <div class="w-14 h-14 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p class="font-black text-slate-700 tracking-tight">กำลังซิงค์ข้อมูล...</p>
+        </div>
+    </div>
+
+    <script>
+        // *** ใส่ URL ของ Apps Script ที่นี่ ***
+        const API_URL = "https://script.google.com/macros/s/AKfycbwwiJ0GzBwuNJvo6nMZ8AE4L07Lzi1NqNZHMKtQCf2brOOro8WNku2BDO0REZw6C17dIQ/exec";
+        
+        let html5QrCode;
+        let currentBarcode = "";
+
+        async function initCamera() {
+            document.getElementById('camera-placeholder').classList.add('hidden');
+            html5QrCode = new Html5Qrcode("reader");
+            const config = { fps: 12, qrbox: { width: 250, height: 180 }, aspectRatio: 1.0 };
+
+            try {
+                await html5QrCode.start({ facingMode: "environment" }, config, (text) => {
+                    if (text !== currentBarcode) {
+                        currentBarcode = text;
+                        if (navigator.vibrate) navigator.vibrate(80);
+                        fetchProduct(text);
+                    }
+                });
+                document.getElementById('status-dot').classList.replace('bg-red-500', 'bg-green-500');
+            } catch (err) {
+                alert("สิทธิ์กล้องถูกปฏิเสธ: " + err);
+                document.getElementById('camera-placeholder').classList.remove('hidden');
+            }
+        }
+
+        async function fetchProduct(barcode) {
+            showLoading(true);
+            try {
+                // ใช้ GET เพื่อเลี่ยงปัญหา CORS กับ Apps Script
+                const res = await fetch(`${API_URL}?action=check&barcode=${barcode}`);
+                const data = await res.json();
+                
+                if (data.status === "success") {
+                    document.getElementById('p-name').innerText = data.name;
+                    document.getElementById('p-barcode').innerText = `Barcode: ${data.barcode}`;
+                    document.getElementById('p-price').innerText = `฿${data.price}`;
+                    document.getElementById('p-stock').innerText = data.stock;
+                    document.getElementById('result-card').classList.remove('hidden');
+                    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                } else {
+                    alert("ไม่พบสินค้า: " + barcode);
+                    currentBarcode = "";
+                }
+            } catch (e) {
+                alert("Backend Offline หรือ CORS Error");
+                currentBarcode = "";
+            }
+            showLoading(false);
+        }
+
+        async function updateStock(type) {
+            showLoading(true);
+            try {
+                const res = await fetch(`${API_URL}?action=update&barcode=${currentBarcode}&type=${type}&amount=1`);
+                const data = await res.json();
+                if (data.status === "success") {
+                    document.getElementById('p-stock').innerText = data.new_stock;
+                }
+            } catch (e) { alert("อัปเดตล้มเหลว"); }
+            showLoading(false);
+        }
+
+        function showLoading(s) { document.getElementById('loading').classList.toggle('hidden', !s); }
+    </script>
+</body>
+</html>
