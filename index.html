@@ -39,6 +39,9 @@
                     <button onclick="initCamera()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95">
                         แตะเพื่อเปิดกล้อง
                     </button>
+                    <button onclick="testConnection()" class="mt-4 text-indigo-400 text-xs underline">
+    คลิกเพื่อทดสอบการเชื่อมต่อ API
+</button>
                 </div>
             </div>
         </div>
@@ -144,6 +147,18 @@
         }
 
         function showLoading(s) { document.getElementById('loading').classList.toggle('hidden', !s); }
+        async function testConnection() {
+    showLoading(true);
+    try {
+        // ทดสอบยิงไปที่ API ดูว่าตอบกลับไหม
+        const res = await fetch(`${API_URL}?action=check&barcode=test`);
+        const data = await res.json();
+        alert("เชื่อมต่อ API สำเร็จ! ระบบตอบกลับว่า: " + JSON.stringify(data));
+    } catch (e) {
+        alert("เชื่อมต่อ API ไม่ได้! ตรวจสอบ URL ใน API_URL ว่าถูกต้องและ Deploy เป็น Anyone หรือยัง\nError: " + e);
+    }
+    showLoading(false);
+}
     </script>
 </body>
 </html>
